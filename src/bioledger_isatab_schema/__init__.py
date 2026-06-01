@@ -8,7 +8,8 @@ from .dataset import (
     load_dataset_from_isatab,
     parse_csv_samplesheet,
 )
-from .download import download_remote_files
+from .download import download_manifest, download_remote_files, manifest_to_datafiles
+from .manifest import Manifest, ManifestFile, StudyType, load_manifest, validate_manifest
 from .models import (
     CharacteristicSpec,
     ISAStudySpec,
@@ -22,6 +23,8 @@ __all__ = [
     "DataSet",
     "DataFile",
     "download_remote_files",
+    "download_manifest",
+    "manifest_to_datafiles",
     "load_dataset_from_csv",
     "load_dataset_from_isatab",
     "parse_csv_samplesheet",
@@ -35,4 +38,9 @@ __all__ = [
     "ISAValidationResult",
     "Severity",
     "validate_isatab",
+    "Manifest",
+    "ManifestFile",
+    "StudyType",
+    "load_manifest",
+    "validate_manifest",
 ]

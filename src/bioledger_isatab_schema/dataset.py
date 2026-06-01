@@ -16,8 +16,10 @@ class DataFile(BaseModel):
     size_bytes: int | None = None  # known size (if local or from HTTP headers)
     is_remote: bool = False  # True if location is a URL
     downloaded_path: str | None = None  # local path after download (if was remote)
-    sha256: str | None = None  # checksum (if available)
+    sha256: str | None = None  # checksum: expected (pre-set) and/or computed after download
+    md5: str | None = None  # alt checksum (e.g. ENA FASTQ publish md5 only)
     sample_name: str = ""  # which sample this file belongs to
+    expected_filename: str | None = None  # canonical local name to download to (e.g. manifest)
 
     @property
     def is_downloaded(self) -> bool:
@@ -156,8 +158,13 @@ def parse_csv_samplesheet(csv_path: Path) -> ParsedCSV:
                 if ext in ("gz", "bz2", "xz", "zst"):
                     parts = val.rsplit(".", 2)
                     if len(parts) >= 2:
-                        # parts[-2] is the extension before compression (e.g., 'fastq' in 'file.fastq.gz')
-                        ext = parts[-2].rsplit(".", 1)[-1].lower() if "." in parts[-2] else parts[-2].lower()
+                        # parts[-2] is the ext before compression ('fastq' in 'file.fastq.gz')
+                        before = parts[-2]
+                        ext = (
+                            before.rsplit(".", 1)[-1].lower()
+                            if "." in before
+                            else before.lower()
+                        )
                 if ext in _FORMAT_MAP:
                     file_columns.append(col)
                     break
