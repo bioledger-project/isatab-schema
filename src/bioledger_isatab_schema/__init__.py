@@ -9,6 +9,8 @@ from .dataset import (
     parse_csv_samplesheet,
 )
 from .download import download_manifest, download_remote_files, manifest_to_datafiles
+from .index import build_index as build_study_index
+from .index import write_index as write_study_index
 from .manifest import Manifest, ManifestFile, StudyType, load_manifest, validate_manifest
 from .models import (
     CharacteristicSpec,
@@ -43,4 +45,6 @@ __all__ = [
     "StudyType",
     "load_manifest",
     "validate_manifest",
+    "build_study_index",
+    "write_study_index",
 ]
