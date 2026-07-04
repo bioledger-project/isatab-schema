@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class StudyType(str, Enum):
@@ -30,13 +30,31 @@ class ManifestFile(BaseModel):
     after download. ``md5`` exists because large public FASTQ at ENA/SRA are
     published with md5 only — computing sha256 would require downloading
     multi-GB files. Prefer ``sha256`` where the source provides it.
+
+    ``sra_accession`` optionally tags a file as originating from an SRA run
+    (e.g. ``SRR7133733``). When the SRA-Toolkit fast-path is enabled via
+    ``BIOLEDGER_USE_SRA_TOOLKIT=1``, the downloader uses ``prefetch`` +
+    ``fasterq-dump`` instead of HTTPS. *Note: this path skips the manifest md5
+    (bytes differ after local re-compression) and records a fresh sha256
+    instead — see the download module for details.*
     """
 
-    filename: str  # canonical local name; must match the ISA-Tab assay table entry
-    url: str  # https preferred (the downloader is httpx-based; no FTP support)
-    format: str
-    sha256: str | None = None  # preferred checksum
-    md5: str | None = None  # accepted when the source only publishes md5 (e.g. ENA FASTQ)
+    filename: str = Field(
+        description="Canonical local name; must match the ISA-Tab assay table entry."
+    )
+    url: str = Field(
+        description="https preferred (the downloader is httpx-based; no FTP support)."
+    )
+    format: str = Field(description="File format, e.g. fastq, fasta, bam.")
+    sha256: str | None = Field(default=None, description="Preferred checksum.")
+    md5: str | None = Field(
+        default=None,
+        description="Accepted when the source only publishes md5 (e.g. ENA FASTQ).",
+    )
+    sra_accession: str | None = Field(
+        default=None,
+        description="Optional SRA run accession (SRR/ERR/DRR) for the SRA-Toolkit fast-path.",
+    )
 
     @model_validator(mode="after")
     def _require_checksum(self) -> "ManifestFile":
@@ -50,15 +68,23 @@ class ManifestFile(BaseModel):
 class Manifest(BaseModel):
     """Parsed ``manifest.yaml`` for a single study directory."""
 
-    study_type: StudyType
-    files: list[ManifestFile]
+    study_type: StudyType = Field(
+        description="One of `reference_genome` or `experimental_data`."
+    )
+    files: list[ManifestFile] = Field(description="Downloadable files for this study.")
     # Reference genome fields
-    assembly_accession: str | None = None
+    assembly_accession: str | None = Field(
+        default=None,
+        description="Required for `reference_genome` studies; must match the directory name.",
+    )
     # Experimental data fields
-    insdc_accession: str | None = None
+    insdc_accession: str | None = Field(
+        default=None,
+        description="Required for `experimental_data` studies; must match the directory name.",
+    )
     # Common fields (human-readable; the ISA-Tab study table is canonical)
-    organism: str | None = None
-    strain: str | None = None
+    organism: str | None = Field(default=None, description="Human-readable organism name.")
+    strain: str | None = Field(default=None, description="Human-readable strain/isolate name.")
 
     @field_validator("study_type", mode="before")
     @classmethod
