@@ -67,18 +67,9 @@ from bioledger_isatab_schema import (
 )
 ```
 
-## Validation contract (what BioLedger requires)
+## Docs
 
-Beyond plain `isatools.load` succeeding, an asset is BioLedger-valid when:
-
-- `i_investigation.txt` exists and parses.
-- The investigation has at least one study with a non-empty title.
-- The study has at least one assay.
-- At least one assay declares data files.
-- Sources include an organism characteristic (warning if absent).
-- Each assay declares a `technology_type` (warning if absent).
-
-See `validate.py` once moved here for the authoritative list.
+Full guide + an auto-generated field/validation-rule reference (regenerated from `models.py`/`manifest.py`/`validate.py` on every push) are published at <https://bioledger-project.github.io/isatab-schema/>. See [`docs/GUIDE.md`](docs/GUIDE.md) for the source.
 
 ## Consumers
 

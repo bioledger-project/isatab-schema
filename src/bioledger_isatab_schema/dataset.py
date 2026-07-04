@@ -20,6 +20,7 @@ class DataFile(BaseModel):
     md5: str | None = None  # alt checksum (e.g. ENA FASTQ publish md5 only)
     sample_name: str = ""  # which sample this file belongs to
     expected_filename: str | None = None  # canonical local name to download to (e.g. manifest)
+    sra_accession: str | None = None  # SRA run accession (SRR/ERR/DRR) for fast-path download
 
     @property
     def is_downloaded(self) -> bool:
