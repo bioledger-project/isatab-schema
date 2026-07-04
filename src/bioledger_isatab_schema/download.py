@@ -35,6 +35,7 @@ import httpx
 from rich.progress import DownloadColumn, Progress, TransferSpeedColumn
 
 from .dataset import DataFile, DataSet
+from .utils import warn_on_ambiguous_periods
 
 if TYPE_CHECKING:
     from .manifest import Manifest
@@ -520,6 +521,7 @@ async def _download_one(
         )
 
     expected_name = file.expected_filename or Path(file.location).name
+    warn_on_ambiguous_periods(expected_name)
     local_path = download_dir / expected_name
 
     # ---- Skip if already downloaded and verified ----

@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from .utils import warn_on_ambiguous_periods
+
 
 class DataFile(BaseModel):
     """A single data file in the dataset.
@@ -220,6 +222,7 @@ def load_dataset_from_csv(csv_path: Path) -> DataSet:
             if not is_remote:
                 resolved = csv_dir / location
                 location = str(resolved) if resolved.exists() else location
+                warn_on_ambiguous_periods(Path(location).name)
 
             files.append(
                 DataFile(
@@ -319,6 +322,7 @@ def load_dataset_from_isatab(isa_dir: Path, validate: bool = True) -> DataSet:
             if fmt not in seen_formats:
                 seen_formats.add(fmt)
                 file_formats.append(fmt)
+            warn_on_ambiguous_periods(isa_file.name)
             files.append(
                 DataFile(
                     location=str(isa_file),
@@ -341,6 +345,7 @@ def load_dataset_from_isatab(isa_dir: Path, validate: bool = True) -> DataSet:
             # If local, resolve path relative to ISA-Tab dir
             if not is_remote:
                 location = str(isa_dir / location)
+                warn_on_ambiguous_periods(Path(location).name)
 
             files.append(
                 DataFile(
