@@ -68,14 +68,18 @@ def _verify_and_record(
     size: int,
     *,
     skip_md5: bool = False,
+    skip_sha256: bool = False,
 ) -> None:
     """Verify computed checksums against the file record and update it in-place.
 
     Raises ``ValueError`` on mismatch and deletes the partial file.
-    ``skip_md5=True`` is used for the SRA-Toolkit path where the local gzip
-    bytes differ from the ENA-published archive that the manifest md5 covers.
+    ``skip_md5``/``skip_sha256`` are used for the SRA-Toolkit path where
+    the local gzip bytes differ from the ENA-published archive that the
+    manifest checksums cover.
     """
-    checks = [("sha256", file.sha256, sha_digest)]
+    checks = []
+    if not skip_sha256:
+        checks.append(("sha256", file.sha256, sha_digest))
     if not skip_md5:
         checks.append(("md5", file.md5, md5_digest))
 
@@ -483,19 +487,18 @@ async def _download_via_sra(
         fastq_path = fastq_candidates[0]
 
         logger.info("gzipping %s -> %s", fastq_path.name, expected_name)
-        sha = hashlib.sha256()
-        md5 = hashlib.md5()
-        size = 0
         with open(fastq_path, "rb") as src, gzip.open(local_path, "wb") as dst:
-            for chunk in iter(lambda: src.read(_CHUNK), b""):
-                dst.write(chunk)
-                sha.update(chunk)   # hash the uncompressed bytes for reproducibility
-                md5.update(chunk)
-                size += len(chunk)
+            shutil.copyfileobj(src, dst, _CHUNK)
 
+    # Hash the gzipped artifact actually written to disk — the manifest's
+    # checksums cover the ENA-published archive, which local re-compression
+    # can't reproduce, so the caller skips manifest verification and these
+    # digests become the record. Hashing the on-disk bytes also keeps the
+    # skip-if-already-downloaded check in _download_one consistent (it
+    # re-hashes the compressed file).
+    sha_hex, md5_hex, size = _hash_file(local_path)
     progress.add_task(f"SRA converted {expected_name}", total=size)
-    # Return computed digests; caller will skip md5 verification.
-    return sha.hexdigest(), md5.hexdigest(), size
+    return sha_hex, md5_hex, size
 
 
 # ---------------------------------------------------------------------------
@@ -545,8 +548,11 @@ async def _download_one(
             sha_digest, md5_digest, size = await _download_via_sra(
                 file, local_path, sra_acc, expected_name, sub_progress, download_dir
             )
+        # Skip both manifest checksums — they cover the ENA-published
+        # archive, not the locally re-compressed bytes.
         _verify_and_record(
-            file, local_path, sha_digest, md5_digest, size, skip_md5=True
+            file, local_path, sha_digest, md5_digest, size,
+            skip_md5=True, skip_sha256=True,
         )
         logger.info(
             "SRA download complete: %s (sha256=%s)", expected_name, sha_digest[:16]
