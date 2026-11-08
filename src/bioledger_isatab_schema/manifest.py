@@ -4,7 +4,8 @@ ISA-Tab does not natively support download URLs in data-file columns — the
 standard expects plain filenames relative to the dataset. To keep the ISA-Tab
 portable for any standard ISA tool, all download metadata lives here instead:
 the manifest is the single source of truth for each file's ``url`` and
-(required) ``sha256``. A user can clone the study, download per the manifest
+checksum (``sha256`` and/or ``md5`` — at least one required). A user can
+clone the study, download per the manifest
 into the study directory, and the ISA-Tab works unchanged.
 """
 
@@ -125,7 +126,8 @@ def validate_manifest(study_dir: Path) -> list[dict[str, str]]:
     - manifest.yaml exists and parses (errors)
     - study_type present and valid (error)
     - assembly_accession / insdc_accession present and matches directory name (error)
-    - files list non-empty, each with filename/url/format/sha256 (error)
+    - files list non-empty, each with filename/url/format and at least one
+      of sha256/md5 (error)
     - study_type vs accession prefix consistency (warning only)
     """
     issues: list[dict[str, str]] = []

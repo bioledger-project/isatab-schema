@@ -15,26 +15,67 @@ ISA-Tab does not natively support download URLs in data-file columns — the sta
 
 - At least one of `sha256` or `md5` is required per file and is verified after download.
 - `md5` exists because large public FASTQ files at ENA/SRA are often published with md5 only.
-- `sra_accession` optionally tags a file as originating from an SRA run; when the SRA-Toolkit fast-path is enabled, the downloader uses `prefetch` + `fasterq-dump` instead of HTTPS.
+- `sra_accession` optionally tags a file as originating from an SRA run; when the SRA-Toolkit fast-path is enabled, the downloader uses `prefetch` + `fasterq-dump` instead of HTTPS. Because `fasterq-dump` output differs from ENA's published archive, the manifest `md5` is skipped for SRA-fetched files (sha256, if present, is still checked on the fetched bytes).
+
+## Downloading remote files
+
+`download_manifest()` resolves a `manifest.yaml` into `DataFile` objects, and
+`download_remote_files()` fetches them. Three transport paths:
+
+1. **Segmented HTTPS** (default) — parallel `Range` requests when the server
+   sends `Accept-Ranges: bytes`; single-stream otherwise. Interrupted
+   downloads resume from the existing partial bytes (re-hashed before
+   appending), with a configurable retry budget.
+2. **aria2c** — opt-in via `BIOLEDGER_USE_ARIA2C=1` for very large files.
+3. **SRA-Toolkit** — files tagged with `sra_accession` are fetched with
+   `prefetch` + `fasterq-dump` (enabled via the toolkit being on PATH;
+   md5 skipped as noted above).
+
+Checksums and sizes are verified after every download; failures raise with
+the expected vs actual digest.
+
+## Building the study index
+
+```bash
+python -m bioledger_isatab_schema.index <studies_dir> [output.json]
+```
+
+Walks a library directory, builds an index entry per study, and writes the
+JSON (stdout when no output path is given) — the same index
+`bioledger study list`/`download` consumes. `build_study_index()` /
+`write_study_index()` are the programmatic equivalents, and
+`manifest_to_datafiles()` converts manifest entries to `DataFile`s.
+
+## Loading datasets
+
+`load_dataset_from_isatab(path)` parses a study directory via `isatools` into
+a `DataSet` of `DataFile`s. For simple cases there is also
+`load_dataset_from_csv()` / `parse_csv_samplesheet()` — a samplesheet with a
+`sample` column (plus `organism` and file columns whose formats are inferred
+from extension) becomes a `DataSet` without authoring full ISA-Tab.
 
 ## Validation rules
 
 BioLedger validates two things about a study: the ISA-Tab itself (`validate_isatab`) and, if present, the companion manifest (`validate_manifest`). Rather than duplicating the exact rule list here, the [API Reference](reference.html) renders it straight from each function's docstring, so it can't drift from the code.
 
-## Target public API
+## Public API
 
 ```python
 from bioledger_isatab_schema import (
     # validation
     validate_isatab, ISAValidationResult, ISAValidationIssue, Severity,
     # dataset model
-    DataSet, DataFile, load_dataset_from_isatab, load_dataset_from_csv,
+    DataSet, DataFile,
+    load_dataset_from_isatab, load_dataset_from_csv,
+    parse_csv_samplesheet, ParsedCSV,
     # study spec (used by ISAForge agent for generation)
     ISAStudySpec, OntologySourceSpec, SourceSpec, SampleSpec, CharacteristicSpec,
     # manifest (download metadata)
     Manifest, ManifestFile, StudyType, load_manifest, validate_manifest,
     # remote files
-    download_remote_files, download_manifest,
+    download_remote_files, download_manifest, manifest_to_datafiles,
+    # study index
+    build_study_index, write_study_index,
 )
 ```
 
@@ -42,4 +83,4 @@ from bioledger_isatab_schema import (
 
 - **[`bioledger-isatab-library`](https://github.com/bioledger-project/isatab-library)** ([browse](https://bioledger-project.github.io/isatab-library/)) — curated ISA-Tab studies (instances of this schema). CI validates every committed study against `validate_isatab`/`validate_manifest`.
 - **[`bioledger-toolspec-schema`](https://github.com/bioledger-project/toolspec-schema)** ([docs](https://bioledger-project.github.io/toolspec-schema/)) — sibling schema package for tool specs. Independent versioning.
-- **[`bioledger`](https://github.com/d-callan/bioledger)** — the application that consumes both.
+- **[`bioledger`](https://github.com/bioledger-project/bioledger)** — the application that consumes both.
