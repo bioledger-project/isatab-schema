@@ -1,0 +1,3 @@
+Sample Name	Protocol REF	Raw Data File
+TEST000001-sample	nucleic acid sequencing	TEST000001_1.fastq.gz
+TEST000001-sample	nucleic acid sequencing	TEST000001_2.fastq.gz

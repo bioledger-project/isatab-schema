@@ -390,9 +390,9 @@ async def _download_via_aria2c(
             f"aria2c failed for {expected_name}: {stderr.decode(errors='replace').strip()}"
         )
 
-    sha, md5, size = _hash_file(local_path)
+    sha_hex, md5_hex, size = _hash_file(local_path)
     progress.add_task(f"Verified {expected_name}", total=size)
-    return sha.hexdigest(), md5.hexdigest(), size
+    return sha_hex, md5_hex, size
 
 
 # ---------------------------------------------------------------------------

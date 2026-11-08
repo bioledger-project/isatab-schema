@@ -1,0 +1,2 @@
+Source Name	Characteristics[Organism]	Term Source REF	Term Accession Number	Protocol REF	Sample Name
+TEST000001-source	Leishmania donovani	NCBITaxon	http://purl.obolibrary.org/obo/NCBITaxon_5661	sample collection	TEST000001-sample
